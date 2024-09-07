@@ -1,0 +1,17 @@
+# Configuration for the exchanges between the source and the target
+# > Use to change the target (example : street>street2)
+# @ Use to search by name in the model
+# $ Use to search by xmlid in the model
+---
+- model: res.partner
+  fields:
+    - name
+    - street
+    - street2
+    - company_type
+    - phone
+    - mobile
+    - country_id[res.country]
+    - title[res.title]
+    # - email>mobile
+    

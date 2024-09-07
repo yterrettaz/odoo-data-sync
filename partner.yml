@@ -1,0 +1,11 @@
+version: 1.0
+
+models:
+  - source: res.partner.title
+    target: res.partner.title
+    fields:
+      - name
+  - source: res.partner
+    target: res.partner
+    fields:
+      - name
