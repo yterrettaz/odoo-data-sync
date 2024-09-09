@@ -1,11 +1,39 @@
 version: 1.0
 
 models:
-  - source: res.partner.title
+  - name: Parent categories
+    source: res.partner.category
+    target : res.partner.category
+    fields:
+      - name
+      - parent_id
+    filter: 
+      - ["parent_id", "=", False]
+  - name : Child categories
+    source: res.partner.category
+    target : res.partner.category
+    fields:
+      - name
+      - parent_id
+  - name : Titles
+    source: res.partner.title
     target: res.partner.title
     fields:
       - name
-  - source: res.partner
+  - name : Partners (only 10)
+    source: res.partner
     target: res.partner
     fields:
       - name
+      - street
+      - street2
+      - company_type
+      - phone
+      - mobile
+      - country_id
+      - title
+      - email
+      - website
+      - category_id
+    limit: 10     
+

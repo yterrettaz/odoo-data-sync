@@ -41,35 +41,42 @@ def get_xmlid(client, model, record):
     xmlid = record.get_external_id()
     for xmlid_key in xmlid.values():
         if xmlid_key:  # Ensure the XML ID is not empty
-            print('Found XML ID:', xmlid_key)
             return xmlid_key
         else:
             print('Found an empty XML ID, skipping.')
     return None
 
 
-def create_xmlid(client, model, record, name=False):
-    """Create a new XML ID for a record in the specified model."""
-    module = '__migration__'
+def create_xmlid(client, model, record, complete_xmlid_name=None):
+    """Create a new XML ID for a record in the specified model using the provided complete XML ID name."""
+    if not complete_xmlid_name:
+        # Generate a default name if none is provided
+        module = '__migration__'
+        complete_xmlid_name = f"{module}.{model.replace('.', '_')}_{record.id}"
 
-    # Determine the name for the XML ID
-    if not name:
-        name = f"{model.replace('.', '_')}_{record.id}"
-    elif not name.startswith(f"{module}."):
-        name = f"{module}.{name}"
+    # Extract module and name from the provided complete XML ID
+    parts = complete_xmlid_name.split('.', 1)
+    if len(parts) < 2:
+        print(f"Error: Invalid XML ID format '{complete_xmlid_name}'.")
+        return None
 
-    # Create a new XML ID in 'ir.model.data'
-    new_record_id = client.env['ir.model.data'].create({
-        'name': name.split('.')[-1],  # Only use the actual name without the module prefix
-        'module': module,
-        'model': model,
-        'res_id': record.id,
-    })
+    xmlid_module, xmlid_name = parts
 
-    # Retrieve and print the complete XML ID name
-    complete_xmlid_name = client.env['ir.model.data'].browse(new_record_id).complete_name
-    print('New XML ID created:', complete_xmlid_name)
-    return complete_xmlid_name
+    try:
+        # Create a new XML ID in 'ir.model.data'
+        client.env['ir.model.data'].create({
+            'name': xmlid_name,  # Only use the actual name part
+            'module': xmlid_module,
+            'model': model,
+            'res_id': record.id,
+        })
+
+        # Print and return the complete XML ID name
+        print('New XML ID created:', complete_xmlid_name)
+        return complete_xmlid_name
+    except odoorpc.error.RPCError as e:
+        print(f'RPCError while creating XML ID: {e}')
+        return None
 
 
 def create_or_update_record(client, model, xmlid, values):
@@ -89,36 +96,95 @@ def create_or_update_record(client, model, xmlid, values):
         return record_id
 
 
+def get_field_type(model, field_name):
+    """Retrieve the type of a field in a given model."""
+    model_fields = model.fields_get([field_name])
+    return model_fields[field_name]['type']
+
+
 def sync_model(datas=None):
     """Synchronize models defined in the configuration file."""
+    if not datas or 'models' not in datas:
+        print('Invalid YAML data format.')
+        return
+
     for data in datas['models']:
-        user_input = input(f"Do you want to continue with the source node '{data['source']}'? (y/n): ")
+        source_model = data.get('source')
+        target_model = data.get('target')
+        data_name = data.get('name')
+        if not source_model or not target_model:
+            print("Source or target model missing in configuration.")
+            continue
+
+        user_input = input(f"Do you want to continue with the source node '{data_name}'? (y/n): ")
         if user_input.lower() != 'y':
             print("Operation canceled by the user.")
             continue
 
         try:
             # Get the records from the source model
-            Records = odoo_source.env[data['source']]
-            record_ids = Records.search([], limit=10)
+            Records = odoo_source.env[source_model]
+            # Apply filters if specified
+            filters = data.get('filter', [])
+            # Get limit from YAML, default to None if not specified
+            limit = data.get('limit', None)
+            if limit is not None:
+                limit = int(limit)  # Ensure limit is an integer
 
-            for record in Records.browse(record_ids):
+            # Search records with filter and limit
+            record_ids = Records.search(filters, limit=limit)
+            if not record_ids:
+                print(f"No records found for model '{source_model}' with the given filter and limit.")
+                continue
+
+            total_records = len(record_ids)  # Total number of records
+            for index, record in enumerate(Records.browse(record_ids), start=1):
+                print(f"Processing record {index}/{total_records} (ID: {record.id})")
                 # Get the XML ID from the source (create if missing) and keep it for the target
-                source_xmlid = get_xmlid(odoo_source, data['source'], record)
+                source_xmlid = get_xmlid(odoo_source, source_model, record)
                 if not source_xmlid:
-                    source_xmlid = create_xmlid(odoo_source, data['source'], record)
+                    # Create the XML ID on the source
+                    source_xmlid = create_xmlid(odoo_source, source_model, record)
 
                 values = {}
                 # Map fields from source to target
-                for field in data['fields']:
+                for field in data.get('fields', []):
+                    # Split source and target fields
                     if '>' in field:
                         field_source, field_target = field.split('>')
-                        values[field_target] = record[field_source]
                     else:
-                        values[field] = record[field]
+                        field_source = field_target = field
+
+                    # Get the field type
+                    field_type = get_field_type(Records, field_source)
+
+                    # Handle different field types
+                    if field_type in ['char', 'text', 'selection']:
+                        # Direct mapping for simple fields
+                        values[field_target] = record[field_source]
+                    elif field_type == 'many2one':
+                        # Use XML ID for many2one fields
+                        related_record = record[field_source]
+                        if related_record:
+                            related_xmlid = get_xmlid(odoo_source, related_record._name, related_record)
+                            if not related_xmlid:
+                                print(f"Error: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this field.")
+                                continue  # Skip processing this field if XML ID is not found
+                            values[field_target] = odoo_target.env.ref(related_xmlid).id
+                    elif field_type == 'many2many':
+                        # Use XML IDs for many2many fields
+                        related_records = record[field_source]
+                        related_ids = []
+                        for related_record in related_records:
+                            related_xmlid = get_xmlid(odoo_source, related_record._name, related_record)
+                            if not related_xmlid:
+                                print(f"Error: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this related record.")
+                                continue  # Skip processing this related record if XML ID is not found
+                            related_ids.append(odoo_target.env.ref(related_xmlid).id)
+                        values[field_target] = [(6, 0, related_ids)]  # M2M update syntax
 
                 # Create or update the record in the target instance
-                create_or_update_record(odoo_target, data['target'], source_xmlid, values)
+                create_or_update_record(odoo_target, target_model, source_xmlid, values)
         except odoorpc.error.RPCError as e:
             print(f'RPCError: {e}')
         except Exception as e:
