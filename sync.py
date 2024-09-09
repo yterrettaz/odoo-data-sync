@@ -116,9 +116,17 @@ def sync_model(datas=None):
             print("Source or target model missing in configuration.")
             continue
 
-        user_input = input(f"Do you want to continue with the source node '{data_name}'? (y/n): ")
-        if user_input.lower() != 'y':
+        while True:
+            user_input = input(f"Do you want to continue with the source node '{data_name}'? (y/n/s): ").lower()
+            if user_input in ['y', 'n', 's']:
+                break
+            print("Invalid input. Please enter 'y' to continue, 'n' to cancel, or 's' to skip this item.")
+
+        if user_input == 'n':
             print("Operation canceled by the user.")
+            break
+        elif user_input == 's':
+            print("Skipping this item.")
             continue
 
         try:
