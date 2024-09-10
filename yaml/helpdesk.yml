@@ -1,0 +1,10 @@
+version: 1.0
+
+models:
+  - name: Helpdesk team
+    source: helpdesk.team
+    target : helpdesk.team
+    fields:
+      - name
+    # filter: 
+    #   - []

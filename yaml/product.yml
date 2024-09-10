@@ -1,0 +1,26 @@
+version: 1.0
+
+models:
+  - name: Product categories
+    source: product.category
+    target : product.category
+    fields:
+      - name
+      - parent_id
+    # filter: 
+    #   - []
+  - name: Products template
+    source: product.template
+    target : product.template
+    fields:
+      - name
+      - categ_id
+      - type>detailed_type
+      - default_code
+      - recurring_invoice
+      - sale_ok
+      - purchase_ok
+      - invoice_policy
+    # filter: 
+    #   - []
+    # limit: 10

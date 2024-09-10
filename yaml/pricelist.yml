@@ -1,0 +1,26 @@
+version: 1.0
+
+models:
+  - name: Entête des listes de prix
+    source: product.pricelist
+    target : product.pricelist
+    fields:
+      - name
+      - currency_id
+      - discount_policy
+    # filter: 
+    #   - []
+  - name: Lignes de priceliste
+    source: product.pricelist.item
+    target : product.pricelist.item
+    fields:
+      - pricelist_id
+      - name
+      - currency_id
+      - applied_on
+      - compute_price
+      - fixed_price
+      - product_tmpl_id
+    # filter: 
+    #   - [] 
+    limit: 10  

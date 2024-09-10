@@ -1,0 +1,13 @@
+version: 1.0
+
+models:
+  - name: Users
+    source: res.users
+    target : res.users
+    fields:
+      - name
+      - login
+      - login>password
+      - groups_id
+    filter: 
+      - ["name", "=", 'TEST']

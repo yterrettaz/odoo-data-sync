@@ -102,6 +102,13 @@ def get_field_type(model, field_name):
     return model_fields[field_name]['type']
 
 
+def apply_field_mapping(value, mapping):
+    """Apply a mapping to a field value if a mapping is provided."""
+    if mapping and value in mapping:
+        return mapping[value]
+    return value
+
+
 def sync_model(datas=None):
     """Synchronize models defined in the configuration file."""
     if not datas or 'models' not in datas:
@@ -116,28 +123,18 @@ def sync_model(datas=None):
             print("Source or target model missing in configuration.")
             continue
 
-        while True:
-            user_input = input(f"Do you want to continue with the source node '{data_name}'? (y/n/s): ").lower()
-            if user_input in ['y', 'n', 's']:
-                break
-            print("Invalid input. Please enter 'y' to continue, 'n' to cancel, or 's' to skip this item.")
-
-        if user_input == 'n':
+        user_input = input(f"Do you want to continue with the source node '{data_name}'? (y/n): ")
+        if user_input.lower() == 'n':
             print("Operation canceled by the user.")
-            break
-        elif user_input == 's':
-            print("Skipping this item.")
             continue
 
         try:
             # Get the records from the source model
             Records = odoo_source.env[source_model]
-            # Apply filters if specified
             filters = data.get('filter', [])
-            # Get limit from YAML, default to None if not specified
             limit = data.get('limit', None)
             if limit is not None:
-                limit = int(limit)  # Ensure limit is an integer
+                limit = int(limit)
 
             # Search records with filter and limit
             record_ids = Records.search(filters, limit=limit)
@@ -145,53 +142,59 @@ def sync_model(datas=None):
                 print(f"No records found for model '{source_model}' with the given filter and limit.")
                 continue
 
-            total_records = len(record_ids)  # Total number of records
+            total_records = len(record_ids)
             for index, record in enumerate(Records.browse(record_ids), start=1):
                 print(f"Processing record {index}/{total_records} (ID: {record.id})")
-                # Get the XML ID from the source (create if missing) and keep it for the target
                 source_xmlid = get_xmlid(odoo_source, source_model, record)
                 if not source_xmlid:
-                    # Create the XML ID on the source
                     source_xmlid = create_xmlid(odoo_source, source_model, record)
 
                 values = {}
-                # Map fields from source to target
+                field_mappings = data.get('field_mappings', {})  # Get field mappings if present
+
                 for field in data.get('fields', []):
-                    # Split source and target fields
                     if '>' in field:
                         field_source, field_target = field.split('>')
                     else:
                         field_source = field_target = field
 
-                    # Get the field type
                     field_type = get_field_type(Records, field_source)
 
-                    # Handle different field types
                     if field_type in ['char', 'text', 'selection']:
-                        # Direct mapping for simple fields
-                        values[field_target] = record[field_source]
+                        # Apply field mapping if it exists
+                        field_value = record[field_source]
+                        mapping = field_mappings.get(field_source, {})
+                        values[field_target] = apply_field_mapping(field_value, mapping)
                     elif field_type == 'many2one':
-                        # Use XML ID for many2one fields
+                        # Handle many2one fields
                         related_record = record[field_source]
                         if related_record:
                             related_xmlid = get_xmlid(odoo_source, related_record._name, related_record)
                             if not related_xmlid:
                                 print(f"Error: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this field.")
-                                continue  # Skip processing this field if XML ID is not found
+                                continue
                             values[field_target] = odoo_target.env.ref(related_xmlid).id
                     elif field_type == 'many2many':
-                        # Use XML IDs for many2many fields
+                        # Handle many2many fields
                         related_records = record[field_source]
                         related_ids = []
                         for related_record in related_records:
                             related_xmlid = get_xmlid(odoo_source, related_record._name, related_record)
                             if not related_xmlid:
-                                print(f"Error: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this related record.")
-                                continue  # Skip processing this related record if XML ID is not found
-                            related_ids.append(odoo_target.env.ref(related_xmlid).id)
-                        values[field_target] = [(6, 0, related_ids)]  # M2M update syntax
+                                print(f"Warning: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this related record.")
+                                continue  # Skip this related record if XML ID is missing
+                            try:
+                                # Attempt to resolve the XMLID to a record ID in the target instance
+                                target_id = odoo_target.env.ref(related_xmlid).id
+                                related_ids.append(target_id)
+                            except odoorpc.error.RPCError as e:
+                                # Log and continue if an error occurs while resolving XMLID
+                                print(f"Error resolving XML ID '{related_xmlid}' in the target instance: {e}")
+                                continue
+                        # Set the many2many field with the list of resolved IDs
+                        values[field_target] = [(6, 0, related_ids)]
 
-                # Create or update the record in the target instance
+                # create or update the record
                 create_or_update_record(odoo_target, target_model, source_xmlid, values)
         except odoorpc.error.RPCError as e:
             print(f'RPCError: {e}')

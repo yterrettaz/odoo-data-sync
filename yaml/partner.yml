@@ -27,6 +27,8 @@ models:
       - name
       - street
       - street2
+      - zip
+      - city
       - company_type
       - phone
       - mobile
@@ -35,5 +37,11 @@ models:
       - email
       - website
       - category_id
+      - lang
+      - comment
+      - vat
+    field_mappings:
+      lang:
+        fr_FR: fr_CH
     limit: 10     
 
