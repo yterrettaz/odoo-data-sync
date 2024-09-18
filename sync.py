@@ -43,7 +43,7 @@ def get_xmlid(client, model, record):
         if xmlid_key:  # Ensure the XML ID is not empty
             return xmlid_key
         else:
-            print('Found an empty XML ID, skipping.')
+            print('Not found XML ID')
     return None
 
 
@@ -136,8 +136,9 @@ def sync_model(datas=None):
             if limit is not None:
                 limit = int(limit)
 
-            # Search records with filter and limit
-            record_ids = Records.search(filters, limit=limit)
+            # Search records with filter, limit, and order by ID ascending
+            record_ids = Records.search(filters, limit=limit, order='id asc')
+
             if not record_ids:
                 print(f"No records found for model '{source_model}' with the given filter and limit.")
                 continue
@@ -161,10 +162,16 @@ def sync_model(datas=None):
                     field_type = get_field_type(Records, field_source)
 
                     if field_type in ['char', 'text', 'selection']:
-                        # Apply field mapping if it exists
                         field_value = record[field_source]
                         mapping = field_mappings.get(field_source, {})
+
+                        # Convert all line breaks to <br/> for any 'text' field
+                        if isinstance(field_value, str):
+                            field_value = field_value.replace('\r\n', '<br/>').replace('\n', '<br/>').replace('\r', '<br/>')
+
+                        # Apply field mapping if it exists
                         values[field_target] = apply_field_mapping(field_value, mapping)
+
                     elif field_type == 'many2one':
                         # Handle many2one fields
                         related_record = record[field_source]

@@ -20,7 +20,7 @@ models:
     target: res.partner.title
     fields:
       - name
-  - name : Partners (only 10)
+  - name : Partners (only 100)
     source: res.partner
     target: res.partner
     fields:
@@ -43,5 +43,5 @@ models:
     field_mappings:
       lang:
         fr_FR: fr_CH
-    limit: 10     
+    limit: 100
 

@@ -1,10 +1,50 @@
 version: 1.0
 
 models:
-  - name: Helpdesk team
+  - name: Helpdesk teams
     source: helpdesk.team
     target : helpdesk.team
     fields:
       - name
     # filter: 
     #   - []
+  - name: Helpdesk tags
+    source: helpdesk.tag
+    target : helpdesk.tag
+    fields:
+      - name
+    # filter: 
+    #   - []
+  - name: Helpdesk types
+    source: helpdesk.ticket.type
+    target : helpdesk.ticket.type
+    fields:
+      - name
+    # filter: 
+    #   - []
+  - name: Helpdesk stages
+    source: helpdesk.stage
+    target : helpdesk.stage
+    fields:
+      - name
+      - team_ids
+      - is_close
+    # filter: 
+    #   - []
+  - name: Helpdesk tickets
+    source: helpdesk.ticket
+    target : helpdesk.ticket
+    fields:
+      - name
+      - team_id
+      - stage_id
+      - user_id
+      - ticket_type_id
+      - priority
+      - tag_ids
+      - description
+      - partner_email
+      - email_cc      
+      - create_date
+    # filter: 
+    #   - []        

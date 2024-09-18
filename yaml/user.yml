@@ -9,5 +9,9 @@ models:
       - login
       - login>password
       - groups_id
-    filter: 
-      - ["name", "=", 'TEST']
+      - lang
+    filter:
+    - ["login", "!=", "admin"]
+    field_mappings:
+      lang:
+        fr_FR: fr_CH    

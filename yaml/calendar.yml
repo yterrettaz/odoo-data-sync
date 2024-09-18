@@ -1,0 +1,20 @@
+version: 1.0
+
+models:
+  - name: Calendars event type
+    source: calendar.event.type
+    target : calendar.event.type
+    fields:
+      - name
+  - name: Calendars
+    source: calendar.event
+    target : calendar.event
+    fields:
+      - name
+      - categ_ids
+      - start
+      - duration
+      - allday
+      - description
+    # filter: 
+    #   - []
