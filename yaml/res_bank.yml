@@ -1,0 +1,17 @@
+version: 1.0
+
+models:
+  - name: Bank
+    source: res.bank
+    target : res.bank
+    fields:
+      - name
+      - bic
+      - street
+      - street2
+      - zip
+      - city
+      - state
+      - country
+      - phone
+      - email

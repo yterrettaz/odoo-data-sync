@@ -1,0 +1,10 @@
+version: 1.0
+
+models:
+  - name: CRM Tags
+    source: crm.tag
+    target : crm.tag
+    fields:
+      - name
+    filter: 
+     - ['id', '!=', 4]             

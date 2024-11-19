@@ -1,0 +1,18 @@
+version: 1.0
+
+models:
+  - name: Account payment term line
+    source: account.payment.term.line
+    target : account.payment.term.line
+    fields:
+      - payment_id   
+      - days>nb_days
+      - value
+      - value_amount
+      - option>delay_type
+    field_mappings:
+      option:
+        day_after_invoice_date: days_after
+        after_invoice_month: days_after_end_of_month
+        day_following_month: days_after_end_of_next_month
+        day_current_month: days_end_of_month_on_the

@@ -1,0 +1,8 @@
+version: 1.0
+
+models:
+  - name : Partners titles
+    source: res.partner.title
+    target: res.partner.title
+    fields:
+      - name

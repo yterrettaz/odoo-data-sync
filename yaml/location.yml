@@ -1,0 +1,21 @@
+version: 1.0
+
+models:
+  - name: Base equipment Inventory location
+    source: stock.location
+    target : stock.location
+    fields:
+      - name
+      - location_id
+      - usage
+    filter: 
+      - ['id', 'in', [29,9]]
+  - name: Inventory location
+    source: stock.location
+    target : stock.location
+    fields:
+      - name
+      - location_id
+      - usage
+    filter: 
+      - ['usage', '=', 'internal']

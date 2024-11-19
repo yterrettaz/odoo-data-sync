@@ -1,0 +1,10 @@
+version: 1.0
+
+models:
+  - name: Entête des listes de prix
+    source: product.pricelist
+    target : product.pricelist
+    fields:
+      - name
+      - currency_id
+      - discount_policy

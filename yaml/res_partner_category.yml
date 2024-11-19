@@ -1,0 +1,16 @@
+version: 1.0
+
+models:
+  - name: Partner categories
+    source: res.partner.category
+    target : res.partner.category
+    fields:
+      - name
+      - parent_id
+      - active
+    filter: 
+      # Get the parent
+      # - ['parent_id', '=', False]
+      # - ["active", "in", [True, False]]
+      # Get the children
+      - ['parent_id', '!=', False]

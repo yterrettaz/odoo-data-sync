@@ -1,0 +1,19 @@
+version: 1.0
+
+models:
+  - name: Payment term
+    source: account.payment.term
+    target : account.payment.term
+    fields:
+      - name
+    # filter: 
+    #   - ['id', 'in', [29,9]]
+  # - name: Payment term lines
+  #   source: stock.location
+  #   target : stock.location
+  #   fields:
+  #     - name
+  #     - location_id
+  #     - usage
+  #   filter: 
+  #     - ['usage', '=', 'internal']

@@ -1,0 +1,58 @@
+version: 1.0
+
+models:
+  - name : Partners (5000)
+    source: res.partner
+    target: res.partner
+    fields:
+      # Header
+      - company_type
+      - trust 
+      - name
+      - parent_id
+      - type
+      - street
+      - street2
+      - street3
+      - zip
+      - city
+      - country_id      
+      - vat
+      - trust
+      - function
+      - phone
+      - mobile
+      - email
+      - website
+      - title
+      - lang
+      - category_id
+      # Sales and purchase
+      # - user_id
+      # - team_id
+      - property_payment_term_id
+      - property_product_pricelist
+      - property_account_position_id
+      - property_supplier_payment_term_id
+      - property_purchase_currency_id
+      - ref
+      # Accounting
+      # Comment
+      - comment
+      - sale_warn
+      - sale_warn_msg
+      - purchase_warn
+      - purchase_warn_msg
+      - invoice_warn
+      - invoice_warn_msg
+      - picking_warn
+      - picking_warn_msg
+    field_mappings:
+      lang:
+        fr_FR: fr_CH
+    limit: 5000
+    filter: 
+       - ["parent_id", "!=", False]
+       - ['id', '>', 23436 ]
+
+

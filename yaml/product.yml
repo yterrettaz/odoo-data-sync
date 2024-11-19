@@ -21,6 +21,11 @@ models:
       - sale_ok
       - purchase_ok
       - invoice_policy
+      - description
+      - description_sale
+      - list_price
+      - must_have_dates
+      - standard_price
     # filter: 
-    #   - []
-    # limit: 10
+    #   - ['id', '=', 1696 ]
+    # # limit: 10

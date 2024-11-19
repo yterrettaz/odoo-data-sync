@@ -1,0 +1,11 @@
+version: 1.0
+
+models:
+  - name: Sales Team
+    source: crm.team
+    target : crm.team
+    fields:
+      - name
+      - dashboard_graph_data
+    # filter: 
+    #   - []
