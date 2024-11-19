@@ -76,7 +76,13 @@ def create_or_update_record(client, model, xmlid, values):
         record = client.env.ref(xmlid)
         record.write(values)
         return record.id
-    except odoorpc.error.RPCError:
+    except odoorpc.error.RPCError as e:
+        print(f"RPCError while writing to record with XML ID '{xmlid}': {e}")
+        for field, value in values.items():
+            try:
+                record.write({field: value})
+            except odoorpc.error.RPCError as field_error:
+                print(f"Error writing field '{field}' with value '{value}': {field_error}")
         model_obj = client.env[model]
         record_id = model_obj.create(values)
         create_xmlid(client, model, model_obj.browse(record_id), xmlid)
@@ -149,6 +155,13 @@ def process_datetime_field(record, field_name):
     datetime_value = record[field_name]
     if datetime_value:
         return datetime_value.strftime('%Y-%m-%d %H:%M:%S')  # Odoo expects datetime strings in this format
+    return None
+
+def process_float_field(record, field_name):
+    """Process a float field."""
+    float_value = record[field_name]
+    if float_value is not None:
+        return float(float_value)
     return None
 
 # Main sync function
@@ -233,6 +246,9 @@ def sync_model(datas=None):
 
                         elif field_type == 'datetime':
                             values[field_target] = process_datetime_field(record, field_source)
+
+                        elif field_type == 'float':
+                            values[field_target] = process_float_field(record, field_source)
 
                     create_or_update_record(odoo_target, target_model, source_xmlid, values)
         
