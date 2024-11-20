@@ -1,0 +1,11 @@
+version: 1.0
+
+models:
+  - name: Product categories
+    source: product.category
+    target : product.category
+    fields:
+      - name
+      - parent_id
+    # filter: 
+    #   - []

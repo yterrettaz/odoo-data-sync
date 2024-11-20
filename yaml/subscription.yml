@@ -1,0 +1,14 @@
+version: 1.0
+
+models:
+  - name: Subscription
+    source: sale.subscription
+    target : sale.order
+    fields:
+      - partner_id
+      - pricelist_id
+      - reference_date>start_date
+      - code>client_order_ref
+      - category_id
+      - partner_invoice_id
+      - partner_shipping_id

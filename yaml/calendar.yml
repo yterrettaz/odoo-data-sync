@@ -20,5 +20,5 @@ models:
       - allday
       - description
       - x_studio_partner_id>guest_partner_id
-    # filter: 
-    #   - []
+    filter: 
+       - ['id', '>', 3181 ]

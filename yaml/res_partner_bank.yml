@@ -1,0 +1,14 @@
+version: 1.0
+
+models:
+  - name: Partner bank
+    source: res.partner.bank
+    target : res.partner.bank
+    fields:
+      - acc_number
+      - l10n_ch_postal>l10n_ch_qr_iban
+      - acc_holder_name
+      - partner_id
+      - currency_id
+    filter: 
+     - ['id', '=', 4] 

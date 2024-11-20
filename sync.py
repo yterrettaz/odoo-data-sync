@@ -57,18 +57,14 @@ def create_xmlid(client, model, record, complete_xmlid_name=None):
 
     xmlid_module, xmlid_name = parts
 
-    try:
-        client.env['ir.model.data'].create({
-            'name': xmlid_name,
-            'module': xmlid_module,
-            'model': model,
-            'res_id': record.id,
-        })
-        print('New XML ID created:', complete_xmlid_name)
-        return complete_xmlid_name
-    except odoorpc.error.RPCError as e:
-        print(f'RPCError while creating XML ID: {e}')
-        return None
+    client.env['ir.model.data'].create({
+        'name': xmlid_name,
+        'module': xmlid_module,
+        'model': model,
+        'res_id': record.id,
+    })
+    print('New XML ID created:', complete_xmlid_name)
+    return complete_xmlid_name
 
 def create_or_update_record(client, model, xmlid, values):
     """Create or update a record matching the XML ID with provided values."""
@@ -76,13 +72,7 @@ def create_or_update_record(client, model, xmlid, values):
         record = client.env.ref(xmlid)
         record.write(values)
         return record.id
-    except odoorpc.error.RPCError as e:
-        print(f"RPCError while writing to record with XML ID '{xmlid}': {e}")
-        for field, value in values.items():
-            try:
-                record.write({field: value})
-            except odoorpc.error.RPCError as field_error:
-                print(f"Error writing field '{field}' with value '{value}': {field_error}")
+    except odoorpc.error.RPCError:
         model_obj = client.env[model]
         record_id = model_obj.create(values)
         create_xmlid(client, model, model_obj.browse(record_id), xmlid)
@@ -93,19 +83,12 @@ def get_field_type(model, field_name):
     model_fields = model.fields_get([field_name])
     return model_fields[field_name]['type']
 
-def apply_field_mapping(value, mapping):
-    """Apply a mapping to a field value if a mapping is provided."""
-    if mapping and value in mapping:
-        return mapping[value]
-    return value
-
-# Functions to handle different types of fields
-def process_char_field(record, field_name, mapping=None):
+def process_char_field(record, field_name):
     """Process a char, text, or selection field."""
     field_value = record[field_name]
     if isinstance(field_value, str):
         field_value = field_value.replace('\r\n', '<br/>').replace('\n', '<br/>').replace('\r', '<br/>')
-    return apply_field_mapping(field_value, mapping)
+    return field_value
 
 def process_many2one_field(odoo_source, odoo_target, record, field_name):
     """Process a many2one field and return the ID of the related record in the target instance."""
@@ -115,11 +98,7 @@ def process_many2one_field(odoo_source, odoo_target, record, field_name):
         if not related_xmlid:
             print(f"Error: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this field.")
             return None
-        try:
-            return odoo_target.env.ref(related_xmlid).id
-        except odoorpc.error.RPCError as e:
-            print(f"Error resolving XML ID '{related_xmlid}' in the target instance: {e}")
-            return None
+        return odoo_target.env.ref(related_xmlid).id
     return None
 
 def process_many2many_field(odoo_source, odoo_target, record, field_name):
@@ -131,12 +110,8 @@ def process_many2many_field(odoo_source, odoo_target, record, field_name):
         if not related_xmlid:
             print(f"Warning: Missing XML ID for related record {related_record.id} in model {related_record._name}. Skipping this related record.")
             continue
-        try:
-            target_id = odoo_target.env.ref(related_xmlid).id
-            related_ids.append(target_id)
-        except odoorpc.error.RPCError as e:
-            print(f"Error resolving XML ID '{related_xmlid}' in the target instance: {e}")
-            continue
+        target_id = odoo_target.env.ref(related_xmlid).id
+        related_ids.append(target_id)
     return [(6, 0, related_ids)]
 
 def process_boolean_field(record, field_name):
@@ -164,7 +139,6 @@ def process_float_field(record, field_name):
         return float(float_value)
     return None
 
-# Main sync function
 def sync_model(datas=None):
     """Synchronize models defined in the configuration file."""
     if not datas or 'models' not in datas:
@@ -186,76 +160,64 @@ def sync_model(datas=None):
             print("Operation canceled by the user.")
             continue
 
-        try:
-            Records = odoo_source.env[source_model]
-            filters = data.get('filter', [])
-            limit = data.get('limit', None)
-            if limit is not None:
-                limit = int(limit)
+        Records = odoo_source.env[source_model]
+        filters = data.get('filter', [])
+        limit = data.get('limit', None)
+        if limit is not None:
+            limit = int(limit)
 
-            record_ids = Records.search(filters, limit=limit, order='id asc')
+        record_ids = Records.search(filters, limit=limit, order='id asc')
 
-            if not record_ids:
-                print(f"No records found for model '{source_model}' with the given filter and limit.")
-                continue
+        if not record_ids:
+            print(f"No records found for model '{source_model}' with the given filter and limit.")
+            continue
 
-            total_records = len(record_ids)
-            print(f"Total records found: {total_records}")
-            
-            for batch_start in range(0, total_records, batch_size):
-                batch_end = min(batch_start + batch_size, total_records)
-                batch_ids = record_ids[batch_start:batch_end]
-                print(f"Processing batch {batch_start + 1} to {batch_end}...")
-
-                for index, record in enumerate(Records.browse(batch_ids), start=batch_start + 1):
-                    print(f"Processing record {index}/{total_records} (ID: {record.id})")
-                    source_xmlid = get_xmlid(odoo_source, source_model, record)
-                    if not source_xmlid:
-                        source_xmlid = create_xmlid(odoo_source, source_model, record)
-
-                    values = {}
-                    field_mappings = data.get('field_mappings', {})  # Get field mappings if present
-
-                    for field in data.get('fields', []):
-                        if '>' in field:
-                            field_source, field_target = field.split('>')
-                        else:
-                            field_source = field_target = field
-
-                        field_type = get_field_type(Records, field_source)
-                        mapping = field_mappings.get(field_source, {})
-
-                        if field_type in ['char', 'text', 'selection']:
-                            values[field_target] = process_char_field(record, field_source, mapping)
-
-                        elif field_type == 'many2one':
-                            related_id = process_many2one_field(odoo_source, odoo_target, record, field_source)
-                            if related_id is not None:
-                                values[field_target] = related_id
-
-                        elif field_type == 'many2many':
-                            related_ids = process_many2many_field(odoo_source, odoo_target, record, field_source)
-                            if related_ids:
-                                values[field_target] = related_ids
-
-                        elif field_type == 'boolean':
-                            values[field_target] = process_boolean_field(record, field_source)
-
-                        elif field_type == 'date':
-                            values[field_target] = process_date_field(record, field_source)
-
-                        elif field_type == 'datetime':
-                            values[field_target] = process_datetime_field(record, field_source)
-
-                        elif field_type == 'float':
-                            values[field_target] = process_float_field(record, field_source)
-
-                    create_or_update_record(odoo_target, target_model, source_xmlid, values)
+        total_records = len(record_ids)
+        print(f"Total records found: {total_records}")
         
-        except odoorpc.error.RPCError as e:
-            print(f'RPCError: {e}')
-        except Exception as e:
-            print(f'Unexpected error: {e}')
+        for batch_start in range(0, total_records, batch_size):
+            batch_end = min(batch_start + batch_size, total_records)
+            batch_ids = record_ids[batch_start:batch_end]
+            print(f"Processing batch {batch_start + 1} to {batch_end}...")
+
+            for index, record in enumerate(Records.browse(batch_ids), start=batch_start + 1):
+                print(f"Processing record {index}/{total_records} (ID: {record.id})")
+                
+                source_xmlid = get_xmlid(odoo_source, source_model, record)
+                if not source_xmlid:
+                    source_xmlid = create_xmlid(odoo_source, source_model, record)
+
+                values = {}
+                field_mappings = data.get('field_mappings', {})
+
+                for field in data.get('fields', []):
+                    if '>' in field:
+                        field_source, field_target = field.split('>')
+                    else:
+                        field_source = field_target = field
+
+                    field_type = get_field_type(Records, field_source)
+
+                    if field_type in ['char', 'text', 'selection']:
+                        values[field_target] = process_char_field(record, field_source)
+                    elif field_type == 'many2one':
+                        related_id = process_many2one_field(odoo_source, odoo_target, record, field_source)
+                        if related_id is not None:
+                            values[field_target] = related_id
+                    elif field_type == 'many2many':
+                        related_ids = process_many2many_field(odoo_source, odoo_target, record, field_source)
+                        if related_ids:
+                            values[field_target] = related_ids
+                    elif field_type == 'boolean':
+                        values[field_target] = process_boolean_field(record, field_source)
+                    elif field_type == 'date':
+                        values[field_target] = process_date_field(record, field_source)
+                    elif field_type == 'datetime':
+                        values[field_target] = process_datetime_field(record, field_source)
+                    elif field_type == 'float':
+                        values[field_target] = process_float_field(record, field_source)
+
+                create_or_update_record(odoo_target, target_model, source_xmlid, values)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

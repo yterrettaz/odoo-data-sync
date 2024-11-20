@@ -1,14 +1,6 @@
 version: 1.0
 
 models:
-  - name: Product categories
-    source: product.category
-    target : product.category
-    fields:
-      - name
-      - parent_id
-    # filter: 
-    #   - []
   - name: Products template
     source: product.template
     target : product.template
@@ -23,9 +15,10 @@ models:
       - invoice_policy
       - description
       - description_sale
-      - list_price
+      - currency_id
       - must_have_dates
       - standard_price
+      - list_price      
     # filter: 
-    #   - ['id', '=', 1696 ]
+    #   - ['id', '=', 84 ]
     # # limit: 10
