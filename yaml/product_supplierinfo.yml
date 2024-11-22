@@ -15,5 +15,7 @@ models:
       - date_start
       - date_end
     filter: 
-      - ['id', '=', 1470 ]
+      # - ['product_tmpl_id.active', '=', True ]
+      # - ['name.active', '=', True ]
+      - ['id', '=', 17 ]
     # # # limit: 10
