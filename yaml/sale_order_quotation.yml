@@ -1,0 +1,25 @@
+version: 1.0
+
+models:
+  - name: Sale order Quotation
+    source: sale.order
+    target : sale.order
+    fields:
+      # Header
+      - name
+      - partner_id
+      - partner_invoice_id
+      - partner_shipping_id
+      - validity_date
+      - date_order 
+      - pricelist_id
+      - payment_term_id
+      # Other information
+      - user_id
+      # - team_id
+      - client_order_ref
+      - tag_ids
+      - fiscal_position_id
+    filter: 
+      - ["state","=","draft"]
+      - ['id', '=', 17543 ]

@@ -1,9 +1,9 @@
 version: 1.0
 
 models:
-  - name: Products template
-    source: product.template
-    target : product.template
+  - name: Products product
+    source: product.product
+    target : product.product
     fields:
       - name
       - categ_id
@@ -19,7 +19,7 @@ models:
       - must_have_dates
       - standard_price
       - list_price
-      - responsible_id
+      # - responsible_id
     filter: 
-    # - ['id', '=', 1817 ]
-    # # limit: 10
+      - ['id', '>', 1512 ]
+    # # # limit: 10

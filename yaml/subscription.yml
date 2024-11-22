@@ -7,8 +7,14 @@ models:
     fields:
       - partner_id
       - pricelist_id
+      - template_id>plan_id
       - reference_date>start_date
       - code>client_order_ref
-      - category_id
+      # - category_id
       - partner_invoice_id
       - partner_shipping_id
+      - x_internal_note>internal_note
+      - user_id
+    filter: 
+       - ['stage_id', '!=', 4 ]
+       - ['id', '>', 239 ]

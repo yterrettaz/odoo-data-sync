@@ -1,0 +1,19 @@
+version: 1.0
+
+models:
+  - name: Products supplier info
+    source: product.supplierinfo
+    target : product.supplierinfo
+    fields:
+      - name>partner_id
+      - product_name
+      - product_code
+      - delay
+      - product_tmpl_id
+      - min_qty
+      - price
+      - date_start
+      - date_end
+    filter: 
+      - ['id', '=', 1470 ]
+    # # # limit: 10

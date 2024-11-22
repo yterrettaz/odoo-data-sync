@@ -52,7 +52,7 @@ models:
         fr_FR: fr_CH
     limit: 5000
     filter: 
-       - ["parent_id", "!=", False]
-       - ['id', '>', 23436 ]
+      #  - ["parent_id", "!=", False]
+      - ['id', '=', 13581 ]
 
 

@@ -1,0 +1,18 @@
+version: 1.0
+
+models:
+  - name: Sale order line Quotation
+    source: sale.order.line
+    target : sale.order.line
+    fields:
+      - order_id
+      - product_id
+      - name
+      - product_uom_qty
+      - price_unit
+      - tax_id
+      - discount
+      - display_type
+      - sequence
+    filter: 
+      - ['order_id.id', '=', 17543 ]

@@ -35,7 +35,24 @@ def read_yaml_file(file_path):
         return yaml.safe_load(file)
 
 def get_xmlid(client, model, record):
-    """Get the XML ID for a record, if it exists."""
+    """Get the XML ID for a record, if it exists, with special handling for product.template."""
+    # Vérifier si le modèle est product.template
+    if model == 'product.template':
+        # Recherche d'une variante associée
+        ProductVariant = client.env['product.product']
+        variant_ids = ProductVariant.search([('product_tmpl_id', '=', record.id)])
+        
+        if variant_ids:
+            variant = ProductVariant.browse(variant_ids[0])  # Prendre la première variante (si plusieurs existent)
+            xmlid = variant.get_external_id()
+            for xmlid_key in xmlid.values():
+                if xmlid_key:
+                    return xmlid_key
+        else:
+            print(f"No variants found for product.template ID {record.id}.")
+            return None
+    
+    # Comportement standard pour les autres modèles
     xmlid = record.get_external_id()
     for xmlid_key in xmlid.values():
         if xmlid_key:
@@ -43,6 +60,7 @@ def get_xmlid(client, model, record):
         else:
             print('Not found XML ID')
     return None
+
 
 def create_xmlid(client, model, record, complete_xmlid_name=None):
     """Create a new XML ID for a record in the specified model using the provided complete XML ID name."""
@@ -175,6 +193,8 @@ def sync_model(datas=None):
         total_records = len(record_ids)
         print(f"Total records found: {total_records}")
         
+        field_mappings = data.get('field_mappings', {})
+
         for batch_start in range(0, total_records, batch_size):
             batch_end = min(batch_start + batch_size, total_records)
             batch_ids = record_ids[batch_start:batch_end]
@@ -188,7 +208,6 @@ def sync_model(datas=None):
                     source_xmlid = create_xmlid(odoo_source, source_model, record)
 
                 values = {}
-                field_mappings = data.get('field_mappings', {})
 
                 for field in data.get('fields', []):
                     if '>' in field:
@@ -198,24 +217,34 @@ def sync_model(datas=None):
 
                     field_type = get_field_type(Records, field_source)
 
-                    if field_type in ['char', 'text', 'selection']:
-                        values[field_target] = process_char_field(record, field_source)
-                    elif field_type == 'many2one':
-                        related_id = process_many2one_field(odoo_source, odoo_target, record, field_source)
-                        if related_id is not None:
-                            values[field_target] = related_id
-                    elif field_type == 'many2many':
-                        related_ids = process_many2many_field(odoo_source, odoo_target, record, field_source)
-                        if related_ids:
-                            values[field_target] = related_ids
-                    elif field_type == 'boolean':
-                        values[field_target] = process_boolean_field(record, field_source)
-                    elif field_type == 'date':
-                        values[field_target] = process_date_field(record, field_source)
-                    elif field_type == 'datetime':
-                        values[field_target] = process_datetime_field(record, field_source)
-                    elif field_type == 'float':
-                        values[field_target] = process_float_field(record, field_source)
+                    # Apply field mapping if defined
+                    if field_source in field_mappings:
+                        mapping = field_mappings.get(field_source)
+                        source_value = record[field_source]
+                        if source_value in mapping:
+                            values[field_target] = mapping[source_value]
+                        else:
+                            values[field_target] = record[field_source]
+                    else:
+                        # Normal field processing
+                        if field_type in ['char', 'text', 'selection', 'integer']:
+                            values[field_target] = process_char_field(record, field_source)
+                        elif field_type == 'many2one':
+                            related_id = process_many2one_field(odoo_source, odoo_target, record, field_source)
+                            if related_id is not None:
+                                values[field_target] = related_id
+                        elif field_type == 'many2many':
+                            related_ids = process_many2many_field(odoo_source, odoo_target, record, field_source)
+                            if related_ids:
+                                values[field_target] = related_ids
+                        elif field_type == 'boolean':
+                            values[field_target] = process_boolean_field(record, field_source)
+                        elif field_type == 'date':
+                            values[field_target] = process_date_field(record, field_source)
+                        elif field_type == 'datetime':
+                            values[field_target] = process_datetime_field(record, field_source)
+                        elif field_type == 'float':
+                            values[field_target] = process_float_field(record, field_source)
 
                 create_or_update_record(odoo_target, target_model, source_xmlid, values)
 
