@@ -17,4 +17,4 @@ models:
       - user_id
     filter: 
        - ['stage_id', '!=', 4 ]
-       - ['id', '>', 239 ]
+       - ['id', '=', 3 ]

@@ -11,7 +11,9 @@ models:
       - default_code
       - recurring_invoice
       - sale_ok
+      - sale_delay
       - purchase_ok
+      - purchase_method
       - invoice_policy
       - description
       - description_sale
@@ -19,7 +21,21 @@ models:
       - must_have_dates
       - standard_price
       - list_price
-      - responsible_id
+      # - responsible_id
+      - uom_id
+      - uom_po_id
+      - sale_line_warn
+      - sale_line_warn_msg
+      - purchase_line_warn
+      - purchase_line_warn_msg
     filter: 
-    # - ['id', '=', 1817 ]
-    # # limit: 10
+      - ['id', '>', 771 ]
+    xmlid_mappings:
+      __export__.product_uom_4: uom.product_uom_hour
+      __export__.product_uom_3: uom.product_uom_day
+      __export__.product_uom_20: mwprog_sale_subscription_mutation.product_uom_year
+      __export__.product_uom_6: uom.product_uom_meter
+      __export__.product_uom_5: uom.product_uom_km
+      __export__.product_uom_7: mwprog_sale_subscription_mutation.product_uom_month
+
+
