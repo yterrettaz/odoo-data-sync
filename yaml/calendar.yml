@@ -19,6 +19,8 @@ models:
       - duration
       - allday
       - description
+      - user_id
+      - attendee_ids>partner_ids
       - x_studio_partner_id>guest_partner_id
     filter: 
-       - ['id', '>', 3181 ]
+       - ['id', '=', 3627 ]

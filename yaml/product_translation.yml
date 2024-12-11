@@ -1,0 +1,11 @@
+version: 1.0
+
+models:
+  - name: Products product
+    source: product.product
+    target : product.product
+    fields:
+      - name
+      - description_sale
+    # filter: 
+    #   - ['id', '=', 1226 ]

@@ -1,0 +1,13 @@
+version: 1.0
+
+models:
+  - name: Stock quants
+    source: stock.quant
+    target : stock.quant
+    fields:
+      - location_id
+      - product_id
+      - lot_id
+      - quantity>inventory_quantity
+    filter: 
+      - ['product_id', '=', 1865]

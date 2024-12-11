@@ -14,5 +14,8 @@ models:
       - discount
       - display_type
       - sequence
+      - date_start>start_date
+      - date_end>end_date
     filter: 
-      - ['analytic_account_id', '=', 3 ]
+      - ['analytic_account_id', '=', 828 ]
+      - ['analytic_account_id.stage_id', '!=', 4 ]

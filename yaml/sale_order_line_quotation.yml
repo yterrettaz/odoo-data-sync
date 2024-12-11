@@ -8,6 +8,7 @@ models:
       - order_id
       - product_id
       - name
+      - product_uom
       - product_uom_qty
       - price_unit
       - tax_id
@@ -15,4 +16,14 @@ models:
       - display_type
       - sequence
     filter: 
-      - ['order_id.id', '=', 17543 ]
+      - ['order_id.id', '=', 17559 ]
+    xmlid_mappings:
+      # UoM
+      __export__.product_uom_4: uom.product_uom_hour
+      __export__.product_uom_3: uom.product_uom_day
+      __export__.product_uom_20: mwprog_sale_subscription_mutation.product_uom_year
+      __export__.product_uom_6: uom.product_uom_meter
+      __export__.product_uom_5: uom.product_uom_km
+      __export__.product_uom_7: mwprog_sale_subscription_mutation.product_uom_month
+      # taxes
+      __setup__.taxe_8_1: account.1_vat_sale_81      

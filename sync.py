@@ -1,42 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
 import yaml
-from datetime import datetime
-from backports import configparser
+from datetime import datetime, date
 import odoorpc
 import traceback
-
-# Settings from config.ini
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-# Connect to an Odoo instance
-def connect_instance(instance):
-    """Connect to an Odoo instance using credentials from the config file."""
-    try:
-        odoo_instance = odoorpc.ODOO(
-            config.get(instance, 'host'),
-            port=config.getint(instance, 'port'),
-            protocol=config.get(instance, 'protocol')
-        )
-
-        odoo_instance.login(
-            config.get(instance, 'database'),
-            config.get(instance, 'user'),
-            config.get(instance, 'password')
-        )
-        return odoo_instance
-    except Exception as e:
-        print(f"Error connecting to instance '{instance}': {e}")
-        raise
-
-# Declare instances
-try:
-    odoo_source = connect_instance('source')
-    odoo_target = connect_instance('target')
-except Exception as e:
-    print(f"Failed to connect to Odoo instances: {e}")
-    sys.exit(1)
+from connect import *
 
 def read_yaml_file(file_path):
     """Read a YAML file and return its contents."""
@@ -57,19 +25,19 @@ def get_xmlid(client, model, record, xmlid_mappings=None):
                 if xmlid_key and xmlid_key in xmlid_mappings:
                     return xmlid_mappings[xmlid_key]
 
-        # Special handling for product.template
-        if model == 'product.template':
-            ProductVariant = client.env['product.product']
-            variant_ids = ProductVariant.search([('product_tmpl_id', '=', record.id)])
-            if variant_ids:
-                variant = ProductVariant.browse(variant_ids[0])
-                xmlid = variant.get_external_id()
-                for xmlid_key in xmlid.values():
-                    if xmlid_key:
-                        return xmlid_key
-            else:
-                print(f"No variants found for product.template ID {getattr(record, 'id', 'Unknown')}.")
-                return None
+        # # Special handling for product.template
+        # if model == 'product.template':
+        #     ProductVariant = client.env['product.product']
+        #     variant_ids = ProductVariant.search([('product_tmpl_id', '=', record.id)])
+        #     if variant_ids:
+        #         variant = ProductVariant.browse(variant_ids[0])
+        #         xmlid = variant.get_external_id()
+        #         for xmlid_key in xmlid.values():
+        #             if xmlid_key:
+        #                 return xmlid_key
+        #     else:
+        #         print(f"No variants found for product.template ID {getattr(record, 'id', 'Unknown')}.")
+        #         return None
 
         # Default XML ID retrieval
         xmlid = record.get_external_id()
@@ -104,23 +72,30 @@ def create_xmlid(client, model, record, complete_xmlid_name=None):
         return complete_xmlid_name
     except Exception as e:
         print(f"Error creating XML ID for record {getattr(record, 'id', 'Unknown')} in model {model}: {e}")
-        raise
+        sys.exit(1)  # Arrête immédiatement le script avec un code d'erreur
 
 def create_or_update_record(client, model, xmlid, values):
-    """Create or update a record matching the XML ID with provided values."""
-    try:
+    """
+    Create or update a record based on the XML ID.
+    If the XML ID exists, update the corresponding record.
+    If not, create a new record and associate the XML ID.
+    """
+    # Check if the XML ID exists
+    record = client.env['ir.model.data'].search([('module', '=', xmlid.split('.')[0]), ('name', '=', xmlid.split('.')[1])])
+    
+    if record:
+        # If the XML ID exists, update the record
         record = client.env.ref(xmlid)
         record.write(values)
         return record.id
-    except odoorpc.error.RPCError:
-        try:
-            model_obj = client.env[model]
-            record_id = model_obj.create(values)
-            create_xmlid(client, model, model_obj.browse(record_id), xmlid)
-            return record_id
-        except Exception as e:
-            print(f"Error creating record in model {model} with values {values}: {e}")
-            raise
+    else:
+        # If the XML ID does not exist, create a new record
+        model_obj = client.env[model]
+        record_id = model_obj.create(values)
+        new_record = model_obj.browse(record_id)
+        # Link the new record to the XML ID
+        create_xmlid(client, model, new_record, xmlid)
+        return record_id
 
 def sync_model(datas=None):
     """Synchronize models defined in the configuration file."""
@@ -137,7 +112,7 @@ def sync_model(datas=None):
         xmlid_mappings = data.get('xmlid_mappings', {})  # Load XML ID mappings from YAML
         if not source_model or not target_model:
             print("Source or target model missing in configuration.")
-            continue
+            sys.exit(1)  # Arrêter immédiatement
 
         Records = odoo_source.env[source_model]
         filters = data.get('filter', [])
@@ -149,12 +124,12 @@ def sync_model(datas=None):
             record_ids = Records.search(filters, limit=limit, order='id asc')
         except Exception as e:
             print(f"Error searching records in model {source_model}: {e}")
-            continue
+            sys.exit(1)  # Arrêter immédiatement
 
         if not record_ids:
             print(f"No records found for model '{source_model}'.")
-            continue
-
+            sys.exit(1)  # Arrêter immédiatement
+        
         total_records = len(record_ids)
         print(f"Total records found: {total_records}")
         
@@ -193,8 +168,16 @@ def sync_model(datas=None):
                                 raw_value = mapping[raw_value]
                         if source_field_type in ['char', 'selection', 'integer', 'float', 'date', 'datetime', 'boolean', 'text']:
                             if source_field_type in ['date', 'datetime'] and raw_value:
-                                # Convertir en chaîne ISO 8601
-                                raw_value = raw_value.isoformat()
+                                if isinstance(raw_value, datetime):
+                                    # Si c'est une instance de datetime, formatez-la
+                                    raw_value = raw_value.strftime('%Y-%m-%d %H:%M:%S')
+                                elif isinstance(raw_value, date):
+                                    # Si c'est une instance de date, formatez-la
+                                    raw_value = raw_value.strftime('%Y-%m-%d')
+                                elif isinstance(raw_value, str) and 'T' in raw_value:
+                                    # Si c'est une chaîne ISO 8601
+                                    raw_value = raw_value.replace('T', ' ')
+                                values[field_target] = raw_value
                             elif source_field_type == 'text' and target_field_type == 'html' and raw_value:
                                 # Remplacer les retours à la ligne par des balises <br>
                                 raw_value = raw_value.replace('\n', '<br>')
@@ -210,13 +193,13 @@ def sync_model(datas=None):
                                         except odoorpc.error.RPCError as e:
                                             print(f"Error finding related record in target for XML ID {related_xmlid}: {e}")
                                             traceback.print_exc()
-                                            continue
+                                            sys.exit(1)  # Arrêter immédiatement
                                     else:
                                         print(f"Missing XML ID for related record {getattr(related_record, 'id', 'Unknown')}.")
                                 except Exception as e:
                                     print(f"Error processing related record {getattr(related_record, 'id', 'Unknown')}: {e}")
                                     traceback.print_exc()
-                                    continue
+                                    sys.exit(1)  # Arrêter immédiatement
                         elif source_field_type == 'many2many':
                             related_records = record[field_source]
                             related_ids = []
@@ -237,7 +220,7 @@ def sync_model(datas=None):
                 except Exception as e:
                     print(f"Error processing record ID {record_id}: {e}")
                     traceback.print_exc()  # Print full error traceback
-                    continue
+                    sys.exit(1)  # Arrêter immédiatement
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

@@ -1,0 +1,15 @@
+version: 1.0
+
+models:
+  - name: Inventory location
+    source: stock.location
+    target : stock.location
+    fields:
+      - name
+      - location_id
+      - usage
+    filter: 
+      - ['usage', '=', 'internal']
+    xmlid_mappings:
+      # Location
+      __migration__.stock_location_9: __custom__.wh_view

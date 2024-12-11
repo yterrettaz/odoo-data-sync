@@ -1,0 +1,8 @@
+version: 1.0
+
+models:
+  - name: Subscription category
+    source: sale.subscription.category
+    target : sale.order.category
+    fields:
+      - name

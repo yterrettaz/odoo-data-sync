@@ -8,10 +8,11 @@ models:
       - name
       - login
       - login>password
+      - email
       - groups_id
       - lang
     filter:
     - ["login", "!=", "admin"]
     field_mappings:
       lang:
-        fr_FR: fr_CH    
+        fr_FR: fr_CH

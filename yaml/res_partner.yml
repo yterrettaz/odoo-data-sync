@@ -1,7 +1,7 @@
 version: 1.0
 
 models:
-  - name : Partners (5000)
+  - name : Partners
     source: res.partner
     target: res.partner
     fields:
@@ -27,12 +27,15 @@ models:
       - title
       - lang
       - category_id
+      # - state_id
       # Sales and purchase
-      # - user_id
-      # - team_id
+      # - user_id ne pas reprendre
+      # - team_id n'est jamais défini; pas besoin de reprendre
       - property_payment_term_id
       - property_product_pricelist
       - property_account_position_id
+      - property_account_receivable_id
+      - property_account_payable_id
       - property_supplier_payment_term_id
       - property_purchase_currency_id
       - ref
@@ -47,12 +50,19 @@ models:
       - invoice_warn_msg
       - picking_warn
       - picking_warn_msg
-    field_mappings:
-      lang:
-        fr_FR: fr_CH
-    limit: 5000
+    # field_mappings:
+    #   lang:
+    #     fr_FR: fr_CH
+    xmlid_mappings:
+      # Account
+      __export__.account_account_49: account.1_ch_coa_1100
+      __export__.account_account_353: account.1_ch_coa_2000
+      # Country
+      __export__.res_country_243: base.ae
+      __export__.res_country_247: base.mu  
     filter: 
       #  - ["parent_id", "!=", False]
-      - ['id', '=', 9293 ]
+      - ['id', '>=', 21269 ]
+      - ['id', 'not in', [9621,9623,9728,9818,10193] ]
 
 

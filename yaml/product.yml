@@ -1,15 +1,16 @@
 version: 1.0
 
 models:
-  - name: Products template
+  - name: Product Template
     source: product.template
     target : product.template
     fields:
+      - active
       - name
       - categ_id
       - type>detailed_type
       - default_code
-      - recurring_invoice
+      # - recurring_invoice
       - sale_ok
       - sale_delay
       - purchase_ok
@@ -28,14 +29,32 @@ models:
       - sale_line_warn_msg
       - purchase_line_warn
       - purchase_line_warn_msg
+      - property_account_income_id
+      - property_account_expense_id
+      - supplier_taxes_id
+      - tracking
     filter: 
-      - ['id', '>', 771 ]
+      - ['id', '>', 575 ]
     xmlid_mappings:
+      # UoM
       __export__.product_uom_4: uom.product_uom_hour
       __export__.product_uom_3: uom.product_uom_day
       __export__.product_uom_20: mwprog_sale_subscription_mutation.product_uom_year
       __export__.product_uom_6: uom.product_uom_meter
       __export__.product_uom_5: uom.product_uom_km
       __export__.product_uom_7: mwprog_sale_subscription_mutation.product_uom_month
+      # Taxes
+      __import__.1_vat_purchase_81: account.1_vat_purchase_81
+      __export__.account_tax_115_e3f5500a: account.1_vat_purchase_81_invest
+      __export__.account_tax_112_ab793b60: account.1_vat_O_import
+      __import__.1_vat_purchase_81_incl: account.1_vat_purchase_81_incl
+      # Accounts
+      __export__.account_account_721: account.1_ch_coa_4200
+      __export__.account_account_2931: account.1_ch_coa_3600
+      __export__.account_account_546: account.1_ch_coa_3200
+      __export__.account_account_355: account.1_ch_coa_2030
+
+
+
 
 

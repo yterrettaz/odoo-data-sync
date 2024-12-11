@@ -16,10 +16,11 @@ models:
       - payment_term_id
       # Other information
       - user_id
-      # - team_id
+      # - team_id / Erreur sur champ graphique
       - client_order_ref
       - tag_ids
       - fiscal_position_id
     filter: 
       - ["state","=","draft"]
-      - ['id', '=', 17543 ]
+      - ['id', 'not in', [1750,17508, 17558, 17561, 17564, 17565, 17574] ] #En erreur
+      - ['id', '>=', 17574 ] #En erreur
